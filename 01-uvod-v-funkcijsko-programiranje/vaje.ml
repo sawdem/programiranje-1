@@ -62,9 +62,12 @@ let primer_vektorji_4 = norma [3.0; 4.0]
  kot med dvema vektorjema v radianih.
 [*----------------------------------------------------------------------------*)
 
-let vmesni_kot u v = skalarni_produkt u v
-
-
+let vmesni_kot u v = 
+  let skal = skalarni_produkt u v in
+  let norm1 = norma u in
+  let norm2 = norma v in
+  let produkt = norm1 *. norm2 in
+  acos skal /. produkt
 
 
 let primer_vektorji_5 = vmesni_kot [1.0; 0.0] [0.0; 1.0]
@@ -75,7 +78,7 @@ let primer_vektorji_5 = vmesni_kot [1.0; 0.0] [0.0; 1.0]
  vektor.
 [*----------------------------------------------------------------------------*)
 
-let normirani v = ()
+let normirani v = List.map ( fun a -> a /. norma ((v)) ) v
 
 let primer_vektorji_6 = normirani [3.0; 4.0]
 (* val primer_vektorji_6 : float list = [0.600000000000000089; 0.8] *)
@@ -85,8 +88,8 @@ let primer_vektorji_6 = normirani [3.0; 4.0]
  izračuna projekcijo prvega vektorja na drugega.
 [*----------------------------------------------------------------------------*)
 
-let projekcija _ _ = ()
-
+let projekcija b a = List.map
+  ( fun x -> ( skalarni_produkt a b /. ( norma a ) ** 2. ) *. x ) a
 let primer_vektorji_7 = projekcija [3.0; 4.0] [1.0; 0.0]
 (* val primer_vektorji_7 : float list = [3.; 0.] *)
 
@@ -123,8 +126,9 @@ let primer_html_2 = zamakni 4 "Hello,\nworld!"
  niz, ki predstavlja ustrezno zamaknjen neurejeni seznam v HTML-ju:
 [*----------------------------------------------------------------------------*)
 
-let ul _ = ()
-
+let ul sez = 
+  let niz = String.concat "</li>\n  <li>" sez in
+  "<ul>\n  <li>" ^ niz ^ "</li>\n</ul>"
 let primer_html_3 = ul ["ananas"; "banana"; "čokolada"]
 (* val primer_html_3 : string =
   "<ul>\n  <li>ananas</li>\n  <li>banana</li>\n  <li>čokolada</li>\n</ul>" *)
@@ -140,8 +144,8 @@ let primer_html_3 = ul ["ananas"; "banana"; "čokolada"]
 
 let razdeli_vrstico vrstica = 
   let mesto = String.index vrstica ',' in
-  let levi = String.sub vrstica 0 mesto in
-  let desni = String.sub vrstica (mesto + 1) (String.length vrstica - 2 ) in
+  let levi = String.sub vrstica 0  mesto in
+  let desni = String.sub vrstica (mesto + 2) (String.length vrstica - mesto - 2) in
   levi, desni
   
 
@@ -168,7 +172,11 @@ let primer_seznam_2 = pretvori_v_seznam_parov "mleko, 2\nkruh, 1\njabolko, 5"
  elementov seznama.
 [*----------------------------------------------------------------------------*)
 
-let pretvori_druge_komponente _ _ = ()
+let rec pretvori_druge_komponente f sez = 
+  match sez with
+  | [] -> []
+  | (x, y) :: naprej -> (x, f y) :: pretvori_druge_komponente f naprej
+
 
 let primer_seznam_3 =
   let seznam = [("ata", "mama"); ("teta", "stric")] in
@@ -181,7 +189,22 @@ let primer_seznam_3 =
  znesek nakupa.
 [*----------------------------------------------------------------------------*)
 
-let izracunaj_skupni_znesek _ _ = ()
+let izracunaj_skupni_znesek niz1 niz2 = 
+  let seznam = pretvori_v_seznam_parov niz1 in
+  let cenik = pretvori_v_seznam_parov niz2 in
+  let rec poisci_ceno ime cenik = 
+    match cenik with
+    | [] -> 0.
+    | (izdelek, cena)::ostanek -> 
+        if izdelek = ime then float_of_string cena
+        else poisci_ceno ime ostanek in
+  let rec vsota seznam cenik =
+    match seznam with
+    | [] -> 0.0
+    | (izdelek, kolicina) :: ostanek ->
+        float_of_string kolicina *. poisci_ceno izdelek cenik
+        +. vsota ostanek cenik in
+  vsota seznam cenik
 
 let primer_seznam_4 = 
   let nakupovalni_seznam = "mleko, 2\njabolka, 5"

@@ -25,9 +25,17 @@ let e3 = (0.0, 0.0, 1.0)
       produkt dveh vektorjev
   [*----------------------------------------------------------------------------*)
 
-let sestej_v_3d _ _ = failwith "TODO"
-let pomnozi_skalar_3d _ _ = failwith "TODO"
-let skalarni_produkt_3d _ _ = failwith "TODO"
+let sestej_v_3d v1 v2 = 
+  match v1, v2 with
+  | (x, y, z), (k, l, m) -> (x +. k, y +. l, z +. m)
+
+let pomnozi_skalar_3d s v = 
+  match v with
+  | (x, y, z) -> (s *. x, s *. y, s *. z)
+
+let skalarni_produkt_3d v1 v2 =
+    match v1, v2 with
+  | (x, y, z), (k, l, m) -> x *. k +. y *. l +. z *. m
 
 (*----------------------------------------------------------------------------*
     Dimenzijo lahko posplošimo z uporabo seznamov. Vektor v R^n lahko
@@ -48,9 +56,18 @@ type vec = float list
     `Neujemajoca_dimenzija`.
   [*----------------------------------------------------------------------------*)
 
-let rec sestej_v _ _ = failwith "TODO"
-let rec pomnozi_skalar _ _ = failwith "TODO"
-let rec skalarni_produkt _ _ = failwith "TODO"
+let rec sestej_v v1 v2 = 
+  if List.length v1 <> List.length v2 then raise Neujemajoca_dimenzija
+  else List.map2 (+.) v1 v2
+
+let rec pomnozi_skalar s v =
+  List.map ( fun a -> a *. s) v
+
+let rec skalarni_produkt v1 v2 = 
+  if List.length v1 <> List.length v2 then raise Neujemajoca_dimenzija
+  else List.map2 ( *. ) v1 v2
+  |> List.fold_left ( +. ) 0.
+  
 
 (*----------------------------------------------------------------------------*
    ## Seznami
@@ -67,9 +84,10 @@ let rec skalarni_produkt _ _ = failwith "TODO"
     `f (... (f (f a0 x1) x2) ...) xn`.
   [*----------------------------------------------------------------------------*)
 
-let rec zlozi_levo _ _ _ = failwith "TODO"
+let rec zlozi_levo f a l =
+  List.fold_left f a l
 
-(*----------------------------------------------------------------------------*
+(*--------------------------------------------------------------------prebu--------*
     Napišite funkcijo `zlozi_desno : ('a -> 'b -> 'b) -> 'b -> 'a list -> 'b`,
     ki zloži seznam elementov tipa `'a` v en element tipa `'b` z uporabo
     funkcije tipa `('a -> 'b -> 'b)` in začetnega akumulatorja tipa `'b`.
@@ -79,7 +97,7 @@ let rec zlozi_levo _ _ _ = failwith "TODO"
     `f x1 (f x2 (... (f xn b0) ...))`.
   [*----------------------------------------------------------------------------*)
 
-let rec zlozi_desno _ _ _ = failwith "TODO"
+let rec zlozi_desno f a l = List.fold_right f l a
 
 (*----------------------------------------------------------------------------*
     Napišite funkcijo
@@ -95,7 +113,20 @@ let rec zlozi_desno _ _ _ = failwith "TODO"
     `f a1 x2 = (a2, y2)`...
   [*----------------------------------------------------------------------------*)
 
-let rec zlozi_levo_pretvori _ _ _ = failwith "TODO"
+let rec zlozi_levo_pretvori f a l =
+  let prvi tuple =
+    match tuple with
+    |a, b -> a
+    |_ -> raise Neujemajoca_dimenzija in
+  let drugi tuple =
+    match tuple with
+    |a, b -> b
+    |_ -> raise Neujemajoca_dimenzija in
+    let sez =
+      match l with
+        | [] -> a
+        | x::xs -> (drugi (f a x))::(zlozi_levo_pretvori f (prvi (f a x)) xs) in
+    List.nth sez (length l)
 
 (*----------------------------------------------------------------------------*
     Napišite funkcijo

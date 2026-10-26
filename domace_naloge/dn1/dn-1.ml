@@ -114,19 +114,12 @@ let rec zlozi_desno f a l = List.fold_right f l a
   [*----------------------------------------------------------------------------*)
 
 let rec zlozi_levo_pretvori f a l =
-  let prvi tuple =
-    match tuple with
-    |a, b -> a
-    |_ -> raise Neujemajoca_dimenzija in
-  let drugi tuple =
-    match tuple with
-    |a, b -> b
-    |_ -> raise Neujemajoca_dimenzija in
-    let sez =
-      match l with
-        | [] -> a
-        | x::xs -> (drugi (f a x))::(zlozi_levo_pretvori f (prvi (f a x)) xs) in
-    List.nth sez (length l)
+  match l with
+  | [] -> (a, [])
+  | x :: xs ->
+      let (nov_a, y) = f a x in
+      let (koncni_a, ys) = zlozi_levo_pretvori f nov_a xs in
+      (koncni_a, y :: ys)
 
 (*----------------------------------------------------------------------------*
     Napišite funkcijo
@@ -140,7 +133,9 @@ let rec zlozi_levo_pretvori f a l =
     `Neujemajoca_dimenzija`.
   [*----------------------------------------------------------------------------*)
 
-let rec zlozi_levo2 _ _ _ _ = failwith "TODO"
+let rec zlozi_levo2 f acc l1 l2 =
+if ((List.length l1) == (List.length l2)) || (l1 == [] || l2 == []) then List.fold_left2 f acc l1 l2
+else raise Neujemajoca_dimenzija
 
 (*----------------------------------------------------------------------------*
    ## Uporaba zlaganja
@@ -157,7 +152,7 @@ let rec zlozi_levo2 _ _ _ _ = failwith "TODO"
     - : float = 5.
   [*----------------------------------------------------------------------------*)
 
-let norma _ = failwith "TODO"
+let norma v = sqrt (skalarni_produkt v v)
 
 (*----------------------------------------------------------------------------*
     Napišite funkcijo
@@ -170,7 +165,8 @@ let norma _ = failwith "TODO"
     - : float = 32.
   [*----------------------------------------------------------------------------*)
 
-let skalarni_produkt_zlozi _ _ = failwith "TODO"
+let skalarni_produkt_zlozi l1 l2 =
+  zlozi_levo2 (fun acc a b -> acc +. a *. b) 0. l1 l2
 
 (*----------------------------------------------------------------------------*
    ## Prodajni avtomat
@@ -194,14 +190,22 @@ type kovanec = C10 | C20 | C50 | E1 | E2
    centih.
   [*----------------------------------------------------------------------------*)
 
-let vrednost _ = failwith "TODO"
-
+let vrednost (kovanec : kovanec) : int =
+  match kovanec with
+  | C10 -> 10
+  | C20 -> 20
+  | C50 -> 50
+  | E1 -> 100
+  | E2 -> 200
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `vsota : kovanec list -> int`, ki vrne skupno vrednost
    seznama kovancev.
   [*----------------------------------------------------------------------------*)
 
-let vsota _ = failwith "TODO"
+let vsota l =
+  List.map vrednost l
+  |> List.fold_left (+) 0
+
 
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `drobiz : int -> kovanec list`, ki dani znesek izplača s
@@ -213,7 +217,15 @@ let vsota _ = failwith "TODO"
    postopek za preostali znesek.
   [*----------------------------------------------------------------------------*)
 
-let drobiz _ = failwith "TODO"
+let rec drobiz (n : int) : kovanec list =
+  match n with
+  | 0 -> []
+  | n when n >= 200 -> E2::drobiz (n - 200)
+  | n when n >= 100 -> E1::drobiz (n - 100)
+  | n when n >= 50 -> C50::drobiz (n - 50)
+  | n when n >= 20 -> C20::drobiz (n - 20)
+  | n when n >= 10 -> C10::drobiz (n -10)
+  | _ -> assert false
 
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `v_niz : int -> string`, ki znesek v centih zapiše kot niz
@@ -223,7 +235,7 @@ let drobiz _ = failwith "TODO"
    - : string = "12.05 €"
   [*----------------------------------------------------------------------------*)
 
-let v_niz _ = failwith "TODO"
+let v_niz n = Printf.sprintf ("%d.%02d €") (n / 100) (n mod 100)
 
 (*----------------------------------------------------------------------------*
    ### Zaloga
@@ -245,7 +257,11 @@ let zacetna_zaloga =
    zalogi poišče izdelek z danim imenom.
   [*----------------------------------------------------------------------------*)
 
-let rec poisci _ _ = failwith "TODO"
+let rec poisci (ime : string) (l : izdelek list) : izdelek option =
+  match l with
+  | [] -> None
+  | x::xs -> if x.ime = ime then Some x else poisci ime xs
+
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo
    `spremeni_kolicino : string -> int -> izdelek list -> izdelek list`, ki
@@ -253,7 +269,12 @@ let rec poisci _ _ = failwith "TODO"
    negativno). Ostali izdelki naj ostanejo nespremenjeni.
   [*----------------------------------------------------------------------------*)
 
-let spremeni_kolicino _ _ _ = failwith "TODO"
+let rec spremeni_kolicino ime kolicina zaloga =
+  match zaloga with
+  | [] -> []
+  | x::xs -> 
+    if x.ime = ime then { x with kolicina = x.kolicina + kolicina } :: xs
+  else x::spremeni_kolicino ime kolicina xs
 
 (*----------------------------------------------------------------------------*
    ### Stanje, vnosi in izhodi
@@ -306,7 +327,13 @@ let zacetno_stanje = { nacin = Obratuje; kredit = 0; zaloga = zacetna_zaloga }
    - `NiVVzdrzevanju`: `"Avtomat ni v vzdrževanju"`.
   [*----------------------------------------------------------------------------*)
 
-let opis_napake _ = failwith "TODO"
+let opis_napake napaka =
+  match napaka with
+  | Premalo n -> "Vstavite še " ^ v_niz n
+  | NiIzdelka ime -> "Izdelka " ^ ime ^ " ni"
+  | Razprodano ime -> "Izdelek " ^ ime ^ " je razprodan"
+  | VVzdrzevanju -> "Avtomat je v vzdrževanju"
+  | NiVVzdrzevanju -> "Avtomat ni v vzdrževanju"
 
 (*----------------------------------------------------------------------------*
    ### Korak avtomata
@@ -350,7 +377,8 @@ let opis_napake _ = failwith "TODO"
    - : izhod = Vrni [C50]
   [*----------------------------------------------------------------------------*)
 
-let korak _ _ = failwith "TODO"
+let korak stanje vnos =
+  failwith "TODO"
 
 let primer_vnosi =
   [
@@ -391,7 +419,7 @@ let primer_vnosi =
      Izdaj {izdelek = "cokolada"; cena = 120; drobiz = []}])
   [*----------------------------------------------------------------------------*)
 
-let simuliraj _ _ = failwith "TODO"
+let simuliraj stanje vnosi = failwith "TODO"
 
 (*----------------------------------------------------------------------------*
    ### Analiza izhodov

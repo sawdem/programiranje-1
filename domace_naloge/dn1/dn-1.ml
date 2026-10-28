@@ -61,12 +61,12 @@ let rec sestej_v v1 v2 =
   else List.map2 (+.) v1 v2
 
 let rec pomnozi_skalar s v =
-  List.map ( fun a -> a *. s) v
+  List.map (fun a -> a *. s) v
 
 let rec skalarni_produkt v1 v2 = 
   if List.length v1 <> List.length v2 then raise Neujemajoca_dimenzija
-  else List.map2 ( *. ) v1 v2
-  |> List.fold_left ( +. ) 0.
+  else List.map2 (( *.)) v1 v2
+  |> List.fold_left (+.) 0.
   
 
 (*----------------------------------------------------------------------------*
@@ -377,8 +377,71 @@ let opis_napake napaka =
    - : izhod = Vrni [C50]
   [*----------------------------------------------------------------------------*)
 
-let korak stanje vnos =
-  failwith "TODO"
+let korak (s : stanje) (v : vnos) : stanje * izhod =
+  match s.nacin with
+  | Obratuje ->
+      (match v with
+      | Vstavi k ->
+          let nov_kredit = s.kredit + vrednost k in
+          ({s with kredit = nov_kredit}, Prikazi nov_kredit)
+      | Izberi ime ->
+          (match poisci ime s.zaloga with
+          | None ->
+              (s, Napaka (NiIzdelka ime))
+          | Some x ->
+              if x.kolicina = 0 then
+                (s, Napaka (Razprodano ime))
+              else if s.kredit < x.cena then
+                (s, Napaka (Premalo (x.cena - s.kredit)))
+              else
+                let nova_zaloga =
+                  spremeni_kolicino ime (-1) s.zaloga
+                in
+                let drobiz_za_vrniti = drobiz (s.kredit - x.cena) in
+                let nov_s = {
+                  s with
+                  kredit = 0;
+                  zaloga = nova_zaloga
+                } in
+                (nov_s,
+                 Izdaj {
+                   izdelek = ime;
+                   cena = x.cena;
+                   drobiz = drobiz_za_vrniti
+                 }))
+      | Preklici ->
+          let kovanci = drobiz s.kredit in
+          ({ s with kredit = 0 }, Vrni kovanci)
+      | ZacniVzdrzevanje ->
+          let kovanci = drobiz s.kredit in
+          ({ s with nacin = Vzdrzevanje; kredit = 0 },
+           Vrni kovanci)
+      | KoncajVzdrzevanje ->
+          (s, Napaka NiVVzdrzevanju)
+      | Dopolni (ime, n) ->
+          (s, Napaka NiVVzdrzevanju))
+  | Vzdrzevanje ->
+      (match v with
+      | Vstavi k ->
+          (s, Vrni [k])
+      | Izberi _ ->
+          (s, Napaka VVzdrzevanju)
+      | Preklici ->
+          (s, Napaka VVzdrzevanju)
+      | ZacniVzdrzevanje ->
+          (s, Napaka VVzdrzevanju)
+      | KoncajVzdrzevanje ->
+          ({ s with nacin = Obratuje }, Prikazi s.kredit)
+      | Dopolni (ime, n) ->
+          (match poisci ime s.zaloga with
+          | None ->
+              (s, Napaka (NiIzdelka ime))
+          | Some _ ->
+              let nova_zaloga =
+                spremeni_kolicino ime n s.zaloga
+              in
+              ({ s with zaloga = nova_zaloga },
+               Prikazi s.kredit)))
 
 let primer_vnosi =
   [
@@ -419,7 +482,8 @@ let primer_vnosi =
      Izdaj {izdelek = "cokolada"; cena = 120; drobiz = []}])
   [*----------------------------------------------------------------------------*)
 
-let simuliraj stanje vnosi = failwith "TODO"
+let simuliraj stanje vnosi =
+  zlozi_levo_pretvori korak stanje vnosi
 
 (*----------------------------------------------------------------------------*
    ### Analiza izhodov
@@ -433,7 +497,12 @@ let simuliraj stanje vnosi = failwith "TODO"
    - : int = 240
   [*----------------------------------------------------------------------------*)
 
-let promet _ = failwith "TODO"
+let promet izhod = 
+  List.fold_left (fun acc izhod ->
+    match izhod with
+    | Izdaj { cena; _ } -> acc + cena
+    | _ -> acc) 0 izhod
+  
 
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `napake : izhod list -> napaka list`, ki vrne seznam vseh
@@ -444,7 +513,13 @@ let promet _ = failwith "TODO"
    [Razprodano "cips"; NiIzdelka "kava"; Razprodano "cokolada"; VVzdrzevanju]
   [*----------------------------------------------------------------------------*)
 
-let napake _ = failwith "TODO"
+let napake izhod =
+  match izhod with
+  | [] -> []
+  | _ -> List.fold_left (fun acc izhod ->
+    match izhod with
+    | Napaka napaka -> acc @ [napaka]
+    | _ -> acc) [] izhod
 
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `izplacani_kovanci : izhod list -> kovanec list`, ki vrne
@@ -455,7 +530,12 @@ let napake _ = failwith "TODO"
    - : kovanec list = [C50; C20; C10; C50]
   [*----------------------------------------------------------------------------*)
 
-let izplacani_kovanci _ = failwith "TODO"
+let izplacani_kovanci izhod =
+List.fold_left (fun acc izhod ->
+    match izhod with
+    | Izdaj { drobiz; _ } -> acc @ drobiz
+    | Vrni kovanci -> acc @ kovanci
+    | _ -> acc) [] izhod
 
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `prodano : izhod list -> (string * int) list`, ki za vsak
@@ -470,7 +550,20 @@ let izplacani_kovanci _ = failwith "TODO"
    - : (string * int) list = [("voda", 2); ("cokolada", 1)]
   [*----------------------------------------------------------------------------*)
 
-let prodano _ = failwith "TODO"
+let prodano izhod =
+  let rec update izdelek acc = match acc with
+    | [] -> [(izdelek, 1)]
+    | (ime, stevilo) :: ostalo when ime = izdelek ->
+        (ime, stevilo + 1) :: ostalo
+    | x :: ostalo -> x :: update izdelek ostalo
+  in
+  List.fold_left
+    (fun acc izhod ->
+      match izhod with
+      | Izdaj { izdelek; _ } -> update izdelek acc
+      | _ -> acc)
+    [] izhod
+
 
 (* Pripomočki za testiranje - ignorirajte *)
 

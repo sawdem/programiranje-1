@@ -28,7 +28,7 @@ type 'a tree =
 
 let leaf x = Node (Empty, x, Empty)
 
-let test_tree = Empty (* Zapišite testni primer *)
+let test_tree = Node (Node (leaf (0), 2, Empty), 5, Node (leaf (6), 7, leaf (11)))(* Zapišite testni primer *)
 
 (*----------------------------------------------------------------------------*
  Funkcija `mirror` vrne prezrcaljeno drevo. Na primeru `test_tree` torej vrne
@@ -40,7 +40,11 @@ let test_tree = Empty (* Zapišite testni primer *)
       11  6   0
 [*----------------------------------------------------------------------------*)
 
-let mirror _ = ()
+let rec mirror = 
+  function
+  | Empty -> Empty
+  | Node (a, b, c) -> Node (mirror (c), b, mirror (a))
+
 
 let primer_mirror = mirror test_tree
 (* val primer_mirror : int tree =
@@ -52,9 +56,15 @@ let primer_mirror = mirror test_tree
  vseh vozlišč drevesa.
 [*----------------------------------------------------------------------------*)
 
-let height _ = ()
+let rec height =
+  function
+  | Empty -> 0
+  | Node (l, _, r) -> 1 + (max (height l) (height r))
 
-let size _ = ()
+let rec size = 
+  function
+  | Empty -> 0
+  | Node (d1, r, d2) -> size (d1) + 1 + size (d2)
 
 let primer_height = height test_tree
 (* val primer_height : int = 3 *)
@@ -67,7 +77,10 @@ let primer_size = size test_tree
  drevesa `tree`, preslikane s funkcijo `f`.
 [*----------------------------------------------------------------------------*)
 
-let map_tree _ _ = ()
+let rec map_tree f t =
+  match t with
+  | Empty -> Empty
+  | Node (l, n, r) -> Node (map_tree f l, f n, map_tree f r)
 
 let primer_map_tree = map_tree ((<) 3) test_tree
 (* val primer_map_tree : bool tree =
@@ -79,7 +92,10 @@ let primer_map_tree = map_tree ((<) 3) test_tree
  naj bo takšen, da v primeru dvojiškega iskalnega drevesa vrne urejen seznam.
 [*----------------------------------------------------------------------------*)
 
-let list_of_tree _ = ()
+let rec list_of_tree t =
+  match t with
+  | Empty -> []
+  | Node (l, n, r) -> list_of_tree (l) @ [n] @ list_of_tree (r)
 
 let primer_list_of_tree = list_of_tree test_tree
 (* val primer_list_of_tree : int list = [0; 2; 5; 6; 7; 11] *)
@@ -89,8 +105,10 @@ let primer_list_of_tree = list_of_tree test_tree
  Tree, na kratko BST). Predpostavite, da v drevesu ni ponovitev elementov,
  torej drevo npr. ni oblike `Node (leaf 1, 1, leaf 2)`. Prazno drevo je BST.
 [*----------------------------------------------------------------------------*)
-
-let is_bst _ = ()
+let rec is_bst t: int tree =
+  match t with
+  | Empty -> true, int_of_float infinity, -int_of_float (infinity)
+  | Node (l, n, r) -> (((is_bst (l)) < n && (is_bst (r)) > n), 6, 5)
 
 let primer_is_bst = is_bst test_tree
 (* val primer_is_bst : bool = true *)
@@ -233,7 +251,7 @@ let primer_rotate_right = rotate_right test_tree
      Node (Node (Empty, 0, Empty), 2,
       Node (Empty, 5, Node (Node (Empty, 6, Empty), 7, Node (Empty, 11, Empty)))) *)
 
-let primer_rotate_left_2 = list_of_tree (rotate_left test_tree)
+(* let primer_rotate_left_2 = list_of_tree (rotate_left test_tree) *)
 (* val primer_rotate_left_2 : int list = [0; 2; 5; 6; 7; 11] *)
 
 (*----------------------------------------------------------------------------*

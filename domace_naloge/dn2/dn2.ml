@@ -56,8 +56,23 @@ let iz_znakov znaki = String.concat "" (List.map (String.make 1) znaki)
  - : bit list = [O; I; I; O]
 [*----------------------------------------------------------------------------*)
 
-let v_niz_bitov s = ()
-let iz_niza_bitov _ = failwith "TODO"
+let v_niz_bitov s =
+  match s with
+  | [] -> ""
+  | x::xs ->
+    let rec aux acc = function
+      | [] -> acc
+      | O::ys -> aux (acc ^ "0") ys
+      | I::ys -> aux (acc ^ "1") ys
+    in
+    aux "" s
+
+let iz_niza_bitov s =
+  s |> String.to_seq |> List.of_seq
+  |> List.map (function
+       | '1' -> I
+       | '0' -> O
+       | _ -> assert false)
 
 (*----------------------------------------------------------------------------*
  Sestavite funkcijo `tabela_kod : drevo -> (char * bit list) list`, ki vrne
@@ -69,7 +84,10 @@ let iz_niza_bitov _ = failwith "TODO"
   ('k', [I; I; I; I])]
 [*----------------------------------------------------------------------------*)
 
-let rec tabela_kod _ = failwith "TODO"
+let rec tabela_kod l = 
+  match l with
+  | List c -> [(c, [])]
+  | Vozlisce (l, d) -> ((tabela_kod (l) |> List.map (fun (c, bits) -> (c, O::bits)))) @ (tabela_kod (d) |> List.map (fun (c, bits) -> (c, I::bits)))
 
 (*----------------------------------------------------------------------------*
  Sestavite funkcijo `kodiraj : drevo -> string -> bit list`, ki besedilo
@@ -79,7 +97,12 @@ let rec tabela_kod _ = failwith "TODO"
  - : string = "0110100"
 [*----------------------------------------------------------------------------*)
 
-let kodiraj _ _ = failwith "TODO"
+let kodiraj l s = 
+  let l' = tabela_kod l in
+  match s |> String.to_seq |> List.of_seq with
+  | [] -> failwith "TODO"
+  | _ -> failwith "TODO"
+
 
 (*----------------------------------------------------------------------------*
  Sestavite funkcijo `dekodiraj : drevo -> bit list -> string`, ki zaporedje

@@ -97,12 +97,11 @@ let rec tabela_kod l =
  - : string = "0110100"
 [*----------------------------------------------------------------------------*)
 
-let kodiraj l s = 
-  let l' = tabela_kod l in
-  match s |> String.to_seq |> List.of_seq with
-  | [] -> failwith "TODO"
-  | _ -> failwith "TODO"
-
+let kodiraj drevo besedilo =
+  let kode = tabela_kod drevo in
+  znaki besedilo
+  |> List.map (fun znak -> List.assoc znak kode)
+  |> List.concat
 
 (*----------------------------------------------------------------------------*
  Sestavite funkcijo `dekodiraj : drevo -> bit list -> string`, ki zaporedje
@@ -113,9 +112,22 @@ let kodiraj l s =
  - : string = "bada"
 [*----------------------------------------------------------------------------*)
 
-let dekodiraj _ _ = failwith "TODO"
+let dekodiraj drevo biti =
+  let rec aux t l =
+    match t, l with
+    | List c, _ -> c :: aux drevo l
+    | Vozlisce (levo, _), O :: xs -> aux levo xs
+    | Vozlisce (_, desno), I :: xs -> aux desno xs
+    | Vozlisce _, [] -> []
+  in
+  match drevo with
+  | List _ -> ""
+  | Vozlisce _ -> iz_znakov (aux drevo biti)
 
-(*----------------------------------------------------------------------------*
+     
+  
+  
+  (*----------------------------------------------------------------------------*
  ## Postopek gradnje drevesa
 [*----------------------------------------------------------------------------*)
 
@@ -127,7 +139,23 @@ let dekodiraj _ _ = failwith "TODO"
  - : (char * int) list = [('a', 5); ('b', 2); ('d', 1); ('k', 1); ('r', 2)]
 [*----------------------------------------------------------------------------*)
 
-let frekvence _ = failwith "TODO"
+let frekvence s =
+  let rec count acc c = function
+    | [] -> acc
+    | x :: xs ->
+        if c = x then count (acc + 1) c xs
+        else count acc c xs
+  in
+  let rec aux acc = function
+    | [] -> List.sort compare acc
+    | x :: xs ->
+        if List.mem_assoc x acc then aux acc xs
+        else
+          let n = count 0 x (x :: xs) in
+          aux ((x, n) :: acc) xs
+  in
+  aux [] (znaki s)
+
 
 (*----------------------------------------------------------------------------*
  Najboljše drevo za besedilo zgradimo iz frekvenc njegovih znakov. Utež
@@ -189,9 +217,21 @@ module UrejenSeznam : PRIORITETNA_VRSTA = struct
   type 'a t = 'a list
 
   let prazna = []
-  let rec vstavi _ _ = failwith "TODO"
-  let odstrani_najmanjsega _ = failwith "TODO"
-  let rec zlij _ _ = failwith "TODO"
+  let rec vstavi n l =
+    match l with
+    | [] -> [n]
+    | x::xs when n <= x -> n::l
+    | x::xs -> x::(vstavi n xs)
+  let odstrani_najmanjsega l =
+    match l with
+    | [] -> None
+    | x::xs -> Some (x, xs)
+  let rec zlij l1 l2 =
+    match (l1, l2) with
+    | ([], l2) -> l2
+    | (l1, []) -> l1
+    | (x::xs, y::ys) when x <= y -> x::zlij xs l2
+    | (x::xs, y::ys) -> y::zlij l1 ys
 end
 
 (*----------------------------------------------------------------------------*
@@ -233,7 +273,9 @@ let primer_kopice =
  kopice.
 [*----------------------------------------------------------------------------*)
 
-let rang _ = failwith "TODO"
+let rang = function
+  | Prazna -> 0
+  | Sestavljena (r, _, _, _) -> r
 
 (*----------------------------------------------------------------------------*
  Sestavite funkcijo `je_levicarska_kopica : 'a kopica -> bool`, ki preveri, ali
@@ -246,8 +288,23 @@ let rang _ = failwith "TODO"
  - : bool = false
 [*----------------------------------------------------------------------------*)
 
-let rec je_levicarska_kopica _ = failwith "TODO"
+let rec je_kopica k =
+  match k with
+  |Prazna -> true
+  | Sestavljena (r, l, k, d) ->
+    match (l, d) with
+    | Prazna, Prazna -> true
+    | Prazna, Sestavljena (_, _, _, _) -> false
+    | Sestavljena (r2, l2, k2, d2), Prazna -> (k <= k2) && (je_kopica l2) && (je_kopica d2) && (r = 1)
+    | Sestavljena (r2, l2, k2, d2), Sestavljena (r3, l3, k3, d3) -> (k <= k2) && (k <= k3) && (je_kopica l2) && (je_kopica d2) && (je_kopica l3) && (je_kopica d3) && (r = 1 + r3)
 
+let rec je_levicarska_kopica k =
+  if je_kopica k then
+    match k with
+    | Prazna -> true
+    | Sestavljena (r, l, k, d) ->
+      (rang l >= rang d) && (je_levicarska_kopica l) && (je_levicarska_kopica d) && (r = 1 + (rang d))
+  else false
 (*----------------------------------------------------------------------------*
  Sestavite funkcijo `sestavi : 'a -> 'a kopica -> 'a kopica -> 'a kopica`, ki
  iz vrednosti in dveh levičarskih kopic sestavi levičarsko kopico z dano
@@ -260,7 +317,13 @@ let rec je_levicarska_kopica _ = failwith "TODO"
  - : bool = true
 [*----------------------------------------------------------------------------*)
 
-let sestavi _ _ _ = failwith "TODO"
+let sestavi a k1 k2 =
+  match k1, k2 with
+  | _, Prazna ->  Sestavljena (1, k1, a, k2)
+  | Prazna, _ -> Sestavljena (1, k2, a, k1)
+  | Sestavljena (r1, l1, m1, d1), Sestavljena (r2, l2, m2, d2) -> 
+    if r1 >= r2 then Sestavljena (1 + r2, k1, a, k2) else Sestavljena (1 + r1, k2, a, k1)
+  
 
 (*----------------------------------------------------------------------------*
  Sestavite funkcijo `zlij : 'a kopica -> 'a kopica -> 'a kopica`, ki zlije dve
@@ -284,7 +347,15 @@ let sestavi _ _ _ = failwith "TODO"
               7 (1)
 [*----------------------------------------------------------------------------*)
 
-let rec zlij _ _ = failwith "TODO"
+let rec zlij k1 k2 =
+  match k1, k2 with
+  | Prazna, _ -> k2
+  | _, Prazna -> k1
+  | Sestavljena (_, l1, m1, d1), Sestavljena (_, l2, m2, d2) ->
+      if m1 <= m2 then
+        sestavi m1 l1 (zlij d1 k2)
+      else
+        sestavi m2 l2 (zlij k1 d2)
 
 (*----------------------------------------------------------------------------*
  Sestavite modul `LevicarskaKopica`, ki prioritetno vrsto predstavi z
@@ -295,9 +366,13 @@ module LevicarskaKopica : PRIORITETNA_VRSTA = struct
   type 'a t = 'a kopica
 
   let prazna = Prazna
-  let vstavi _ _ = failwith "TODO"
-  let odstrani_najmanjsega _ = failwith "TODO"
-  let zlij _ _ = failwith "TODO"
+  let zlij = zlij
+
+  let vstavi a k = zlij (sestavi a Prazna Prazna) k
+
+  let odstrani_najmanjsega = function
+    | Prazna -> None
+    | Sestavljena (_, l, a, d) -> Some (a, zlij l d)
 end
 
 (*----------------------------------------------------------------------------*
@@ -312,7 +387,18 @@ end
 [*----------------------------------------------------------------------------*)
 
 module Uredi (V : PRIORITETNA_VRSTA) = struct
-  let uredi _ = failwith "TODO"
+  let uredi l =
+    let rec naredi_V = function
+      | [] -> V.prazna
+      | x :: xs -> V.vstavi x (naredi_V xs)
+    in
+    let k = naredi_V l in
+    let rec izprazni vrsto =
+      match V.odstrani_najmanjsega vrsto with
+      | None -> []
+      | Some (x, preostanek) -> x :: izprazni preostanek
+    in
+    izprazni k
 end
 
 module UrediSSeznamom = Uredi (UrejenSeznam)

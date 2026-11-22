@@ -293,7 +293,7 @@ let rec je_kopica k =
   |Prazna -> true
   | Sestavljena (r, l, k, d) ->
     match (l, d) with
-    | Prazna, Prazna -> true
+    | Prazna, Prazna -> r = 1
     | Prazna, Sestavljena (_, _, _, _) -> false
     | Sestavljena (r2, l2, k2, d2), Prazna -> (k <= k2) && (je_kopica l2) && (je_kopica d2) && (r = 1)
     | Sestavljena (r2, l2, k2, d2), Sestavljena (r3, l3, k3, d3) -> (k <= k2) && (k <= k3) && (je_kopica l2) && (je_kopica d2) && (je_kopica l3) && (je_kopica d3) && (r = 1 + r3)
@@ -422,7 +422,33 @@ module UrediSKopico = Uredi (LevicarskaKopica)
 [*----------------------------------------------------------------------------*)
 
 module Huffman (V : PRIORITETNA_VRSTA) = struct
-  let zgradi_drevo _ = failwith "TODO"
+  let zgradi_drevo l =
+    let rec aux acc l =
+      match l with
+      | [] -> acc
+      | (c, i) :: xs ->
+          aux (V.vstavi (i, c, List c) acc) xs
+    in
+
+    let vrsta = aux V.prazna l in
+
+    let rec zdruzi vrsta =
+      match V.odstrani_najmanjsega vrsta with
+      | None -> failwith "Prazna vrsta"
+      | Some ((u1, c1, d1), ostanek) ->
+          match V.odstrani_najmanjsega ostanek with
+          | None -> d1
+          | Some ((u2, c2, d2), ostanek2) ->
+              let novo_drevo = Vozlisce (d1, d2) in
+              let nova_utez = u1 + u2 in
+              let najmanjsi_znak = min c1 c2 in (* to načeloma ni pomembno i think*)
+              zdruzi
+                (V.vstavi
+                   (nova_utez, najmanjsi_znak, novo_drevo)
+                   ostanek2)
+    in
+
+    zdruzi vrsta
 end
 
 module HuffmanSSeznamom = Huffman (UrejenSeznam)
@@ -443,7 +469,11 @@ let zgradi_drevo = HuffmanSKopico.zgradi_drevo
  - : int = 23
 [*----------------------------------------------------------------------------*)
 
-let dolzina_kodiranja _ _ = failwith "TODO"
+let dolzina_kodiranja l d =
+  let kode = tabela_kod d in
+  List.fold_left (fun acc (c, f) -> acc + f * List.length (List.assoc c kode)) 0 l
+  
+  
 
 (*----------------------------------------------------------------------------*
  Sestavite funkciji `stisni : string -> drevo * bit list`, ki zgradi drevo za
@@ -456,8 +486,11 @@ let dolzina_kodiranja _ _ = failwith "TODO"
  - : string = "abrakadabra"
 [*----------------------------------------------------------------------------*)
 
-let stisni _ = failwith "TODO"
-let razsiri _ = failwith "TODO"
+let stisni s =
+  let d = HuffmanSKopico.zgradi_drevo (frekvence s) in
+  (d, kodiraj d s)
+let razsiri (d, biti) =
+  dekodiraj d biti
 
 (*----------------------------------------------------------------------------*
  Sestavite funkcijo `razmerje_stiskanja : string -> float`, ki vrne razmerje
@@ -468,7 +501,10 @@ let razsiri _ = failwith "TODO"
  - : float = 0.21875
 [*----------------------------------------------------------------------------*)
 
-let razmerje_stiskanja _ = failwith "TODO"
+let razmerje_stiskanja s =
+  let d, biti = stisni s in
+  float_of_int (List.length biti) /.
+  float_of_int (8 * String.length s)
 
 (* Pripomočki za testiranje - ignorirajte *)
 

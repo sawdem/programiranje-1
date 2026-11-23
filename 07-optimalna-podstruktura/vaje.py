@@ -20,7 +20,41 @@
 #     [1, 1, 2, 3, 3, 4, 5, 5, 6, 7, 7, 10]
 #
 ###############################################################################
+def merge(target, tab1, tab2):
+    i = j = k = 0
 
+    while i < len(tab1) and j < len(tab2):
+        if tab1[i] <= tab2[j]:
+            target[k] = tab1[i]
+            i += 1
+        else:
+            target[k] = tab2[j]
+            j += 1
+        k += 1
+
+    while i < len(tab1):
+        target[k] = tab1[i]
+        i += 1
+        k += 1
+
+    while j < len(tab2):
+        target[k] = tab2[j]
+        j += 1
+        k += 1
+
+    return target
+# def merge(target, tab1, tab2):
+#     if tab1==[]:
+#         target = tab2
+#     elif tab2==[]:
+#         target = tab1
+#     elif tab1[0] <= tab2[0]:
+#         target[0] = tab1[0]
+#         target[1:] = merge(target[1:], tab1[1:], tab2) 
+#     else:
+#         target[0] = tab2[0]
+#         target[1:] = merge(target[1:], tab1, tab2[1:]) 
+#     return target
 
 ###############################################################################
 # Tabelo želimo urediti z zlivanjem (merge sort). Tabelo razdelimo na polovici,
@@ -37,6 +71,15 @@
 #     >>> a
 #     [2, 3, 4, 5, 10, 11, 15, 17, 18]
 ###############################################################################
+def mergesort(a):
+    n = len(a)
+    d = n // 2
+
+    if (a == []) | (len(a) == 1):
+        return a
+    else:
+        a = merge([0 for _ in range(n)], mergesort(a[:d]), mergesort(a[d:]))
+        return a
 
 ###############################################################################
 # Na predavanjih ste implementirali imperativno verzijo pivotiranja v OCamlu, 
